@@ -3,7 +3,7 @@ import 'package:teslo_shop/features/auth/infrastructure/infrastructure.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
-final AuthProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authProvider  = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authRepository = AuthRepositoryImplementation();
   return AuthNotifier(
     authRepository: authRepository
