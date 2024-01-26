@@ -18,21 +18,35 @@ class AuthDataSourceImplementation extends AuthDataSource{
       Environment.userPoolId, Environment.clientId
   );
 
+  CognitoUserSession? session;
+  CognitoUser? cognitoUser;
+  CognitoCredentials? credentials;
+
   @override
   Future<User> login( String userName, String password ) async{
     final cognitoUser = CognitoUser(userName, userPool);
     final authDetails = AuthenticationDetails(username: userName, password: password);
 
-    CognitoUserSession? session;
     try {
       session = await cognitoUser.authenticateUser(authDetails);
-      print(session);
       debugPrint('Login Success...');
       final credentials = CognitoCredentials(Environment.identityPoolId, userPool);
       await credentials.getAwsCredentials(session?.getIdToken().getJwtToken());
-      print(session?.getIdToken().getJwtToken());
-      final user = null;
+
+      final attributes = await cognitoUser?.getUserAttributes();
+
+      User user = User(
+        email: 'user@example.com',
+        fullName: 'John Doe',
+        userName: userName,
+        id: '1234567890',
+        roles: ['admin', 'user'],
+        token: '${session?.getIdToken().getJwtToken()}',
+        userType: 'regular',
+      );
+
       return user;
+
     } on CognitoUserNewPasswordRequiredException catch (e) {
       debugPrint('CognitoUserNewPasswordRequiredException $e');
     } on CognitoUserMfaRequiredException catch (e) {
@@ -53,8 +67,6 @@ class AuthDataSourceImplementation extends AuthDataSource{
       print(e);
     }
 
-
-
     throw UnimplementedError();
   }
 
@@ -64,8 +76,35 @@ class AuthDataSourceImplementation extends AuthDataSource{
     throw UnimplementedError();
   }
 
-  Future<User> checkAuthStatus( String token ) {
-    // TODO: implement checkAuthStatus
+  Future<User> checkAuthStatus( String token ) async {
+    final user = await userPool.getCurrentUser();
+    final session = await user?.getSession();
     throw UnimplementedError();
+  }
+
+  Future<bool?> checkAuthenticated() async {
+    if (cognitoUser == null || session == null) {
+      return false;
+    }
+    return session?.isValid();
+  }
+
+  Future<CognitoCredentials?> getCredentials() async {
+    if (cognitoUser == null || session == null) {
+      return null;
+    }
+    credentials = CognitoCredentials(Environment.identityPoolId, userPool);
+    await credentials?.getAwsCredentials(session?.getIdToken().getJwtToken());
+    return credentials;
+  }
+
+  Future<void> signOut() async {
+    final credentials = this.credentials;
+    if (credentials != null) {
+      await credentials.resetAwsCredentials();
+    }
+    if (cognitoUser != null) {
+      return cognitoUser?.signOut();
+    }
   }
 }

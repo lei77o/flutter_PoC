@@ -13,6 +13,11 @@ class AuthRepositoryImplementation extends AuthRepository{
   }
 
   @override
+  Future<bool?> checkAuthenticated(){
+    return dataSource.checkAuthenticated();
+  }
+
+  @override
   Future<User> login(String userName, String password) {
     return dataSource.login(userName, password);
   }
